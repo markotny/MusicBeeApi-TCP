@@ -115,6 +115,13 @@ namespace MusicBeeAPI_TCP
             WriteToStreamAsync(msg);
         }
 
+        /// <summary>
+        /// For calling MusicBee functions through TCP. For list of avaible functions see TcpMessaging.Command enum.
+        /// </summary>
+        /// <typeparam name="T">Return type of selected function. If void, use type 'object'</typeparam>
+        /// <param name="cmd">Selected function.</param>
+        /// <param name="args">All arguments required by selected function. If no parameters required, leave empty.</param>
+        /// <returns></returns>
         public async Task<T> SendRequest<T>(Command cmd, params object[] args)
         {
             if (!TcpRequest.CheckIfValidParameters(cmd, args))

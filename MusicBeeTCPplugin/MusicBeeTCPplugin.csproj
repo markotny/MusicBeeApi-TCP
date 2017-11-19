@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{0AD5D7F6-8D43-42F7-B51D-204079C02C71}</ProjectGuid>
+    <ProjectGuid>{6FA8D5AA-6B73-4ABC-842D-7F14032DA7FD}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>MusicBeeAPI_TCP</RootNamespace>
-    <AssemblyName>MusicBeeAPI-TCP</AssemblyName>
+    <RootNamespace>MusicBeeTCPplugin</RootNamespace>
+    <AssemblyName>mb_TCPHelper</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -19,7 +19,7 @@
     <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
+    <WarningLevel>0</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -42,14 +42,21 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="MusicBeeApiTcp.cs" />
-    <Compile Include="MusicBeeInterface.cs" />
+    <Compile Include="..\MusicBeeAPI-TCP\MusicBeeApiTcp.cs">
+      <Link>MusicBeeApiTcp.cs</Link>
+    </Compile>
+    <Compile Include="..\MusicBeeAPI-TCP\MusicBeeInterface.cs">
+      <Link>MusicBeeInterface.cs</Link>
+    </Compile>
+    <Compile Include="..\MusicBeeAPI-TCP\TcpMessaging.cs">
+      <Link>TcpMessaging.cs</Link>
+    </Compile>
+    <Compile Include="mb_TCPHelper.cs" />
+    <Compile Include="mb_TCPpluginBase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TcpMessaging.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>
-    </PostBuildEvent>
+    <PostBuildEvent>xcopy  "$(TargetDir)mb_TCPHelper.dll" "C:\Program Files (x86)\MusicBee\Plugins\" /Y</PostBuildEvent>
   </PropertyGroup>
 </Project>

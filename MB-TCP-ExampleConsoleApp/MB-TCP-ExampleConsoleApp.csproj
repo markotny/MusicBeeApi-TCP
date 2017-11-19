@@ -4,15 +4,16 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{0AD5D7F6-8D43-42F7-B51D-204079C02C71}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>MusicBeeAPI_TCP</RootNamespace>
-    <AssemblyName>MusicBeeAPI-TCP</AssemblyName>
+    <ProjectGuid>{0033384B-0D19-4206-8970-6A1ECDF17A47}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>MB_TCP_ExampleConsoleApp</RootNamespace>
+    <AssemblyName>MB-TCP-ExampleConsoleApp</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -22,6 +23,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -42,14 +44,20 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="MusicBeeApiTcp.cs" />
-    <Compile Include="MusicBeeInterface.cs" />
+    <Compile Include="..\MusicBeeAPI-TCP\MusicBeeApiTcp.cs">
+      <Link>MusicBeeApiTcp.cs</Link>
+    </Compile>
+    <Compile Include="..\MusicBeeAPI-TCP\MusicBeeInterface.cs">
+      <Link>MusicBeeInterface.cs</Link>
+    </Compile>
+    <Compile Include="..\MusicBeeAPI-TCP\TcpMessaging.cs">
+      <Link>TcpMessaging.cs</Link>
+    </Compile>
+    <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TcpMessaging.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PostBuildEvent>
-    </PostBuildEvent>
-  </PropertyGroup>
 </Project>

@@ -1,20 +1,63 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26730.16
+VisualStudioVersion = 15.0.27004.2009
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MusicBeeAPI-TCP", "MusicBeeAPI-TCP\MusicBeeAPI-TCP.csproj", "{0AD5D7F6-8D43-42F7-B51D-204079C02C71}"
+EndProject
+Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "MusicBee", "C:\Program Files (x86)\MusicBee\MusicBee.exe", "{F548EA11-8A68-43A6-8C9C-811E23F79C44}"
+	ProjectSection(DebuggerProjectSystem) = preProject
+		PortSupplier = 00000000-0000-0000-0000-000000000000
+		Executable = C:\Program Files (x86)\MusicBee\MusicBee.exe
+		RemoteMachine = MARCIN-LAPTOP
+		StartingDirectory = C:\Program Files (x86)\MusicBee
+		Environment = Default
+		LaunchingEngine = 00000000-0000-0000-0000-000000000000
+		UseLegacyDebugEngines = No
+		LaunchSQLEngine = No
+		AttachLaunchAction = No
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MusicBeeTCPplugin", "MusicBeeTCPplugin\MusicBeeTCPplugin.csproj", "{6FA8D5AA-6B73-4ABC-842D-7F14032DA7FD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MB-TCP-ExampleConsoleApp", "MB-TCP-ExampleConsoleApp\MB-TCP-ExampleConsoleApp.csproj", "{0033384B-0D19-4206-8970-6A1ECDF17A47}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Debug|x86 = Debug|x86
 		Release|Any CPU = Release|Any CPU
+		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{0AD5D7F6-8D43-42F7-B51D-204079C02C71}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0AD5D7F6-8D43-42F7-B51D-204079C02C71}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0AD5D7F6-8D43-42F7-B51D-204079C02C71}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{0AD5D7F6-8D43-42F7-B51D-204079C02C71}.Debug|x86.Build.0 = Debug|Any CPU
 		{0AD5D7F6-8D43-42F7-B51D-204079C02C71}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0AD5D7F6-8D43-42F7-B51D-204079C02C71}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0AD5D7F6-8D43-42F7-B51D-204079C02C71}.Release|x86.ActiveCfg = Release|Any CPU
+		{0AD5D7F6-8D43-42F7-B51D-204079C02C71}.Release|x86.Build.0 = Release|Any CPU
+		{F548EA11-8A68-43A6-8C9C-811E23F79C44}.Debug|Any CPU.ActiveCfg = Release|x86
+		{F548EA11-8A68-43A6-8C9C-811E23F79C44}.Debug|x86.ActiveCfg = Release|x86
+		{F548EA11-8A68-43A6-8C9C-811E23F79C44}.Release|Any CPU.ActiveCfg = Release|x86
+		{F548EA11-8A68-43A6-8C9C-811E23F79C44}.Release|x86.ActiveCfg = Release|x86
+		{6FA8D5AA-6B73-4ABC-842D-7F14032DA7FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6FA8D5AA-6B73-4ABC-842D-7F14032DA7FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6FA8D5AA-6B73-4ABC-842D-7F14032DA7FD}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{6FA8D5AA-6B73-4ABC-842D-7F14032DA7FD}.Debug|x86.Build.0 = Debug|Any CPU
+		{6FA8D5AA-6B73-4ABC-842D-7F14032DA7FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6FA8D5AA-6B73-4ABC-842D-7F14032DA7FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6FA8D5AA-6B73-4ABC-842D-7F14032DA7FD}.Release|x86.ActiveCfg = Release|Any CPU
+		{6FA8D5AA-6B73-4ABC-842D-7F14032DA7FD}.Release|x86.Build.0 = Release|Any CPU
+		{0033384B-0D19-4206-8970-6A1ECDF17A47}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0033384B-0D19-4206-8970-6A1ECDF17A47}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0033384B-0D19-4206-8970-6A1ECDF17A47}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{0033384B-0D19-4206-8970-6A1ECDF17A47}.Debug|x86.Build.0 = Debug|Any CPU
+		{0033384B-0D19-4206-8970-6A1ECDF17A47}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0033384B-0D19-4206-8970-6A1ECDF17A47}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0033384B-0D19-4206-8970-6A1ECDF17A47}.Release|x86.ActiveCfg = Release|Any CPU
+		{0033384B-0D19-4206-8970-6A1ECDF17A47}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

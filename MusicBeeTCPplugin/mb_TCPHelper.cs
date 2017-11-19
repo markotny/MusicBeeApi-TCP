@@ -15,9 +15,10 @@ namespace MusicBeePlugin
 
         public void ReceiveNotification(string sourceFileUrl, NotificationType type)
         {
+
             //if sending all notifications through TCP
-            _mbTcpHelper.SendMessage(type);
-            
+            //_mbTcpHelper.SendMessage(type);
+          
             switch (type)
             {
                 case NotificationType.PluginStartup:
@@ -214,7 +215,7 @@ namespace MusicBeePlugin
             {
                 Console.WriteLine(e);
             }
-            
+          
         }
 
         private async Task<Bitmap> GetAlbumArtwork()

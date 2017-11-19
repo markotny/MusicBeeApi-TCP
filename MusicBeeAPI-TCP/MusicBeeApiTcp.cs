@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using MusicBeePlugin;
 
 namespace MusicBeeAPI_TCP
 {
@@ -150,7 +151,7 @@ namespace MusicBeeAPI_TCP
         {
             try
             {
-                var methodInfo = typeof(MusicBeePlugin.Plugin).GetNestedType(cmd.ToString()).GetMethod("Invoke");
+                var methodInfo = typeof(Plugin).GetNestedType(cmd.ToString()).GetMethod("Invoke");
                 if (methodInfo == null)
                     throw new NullReferenceException("Method not found!");
 
@@ -167,7 +168,7 @@ namespace MusicBeeAPI_TCP
         {
             try
             {
-                var methodInfo = typeof(MusicBeePlugin.Plugin).GetNestedType(cmd.ToString()).GetMethod("Invoke");
+                var methodInfo = typeof(Plugin).GetNestedType(cmd.ToString()).GetMethod("Invoke");
                 if (methodInfo == null)
                     throw new NullReferenceException("Method not found!");
 
