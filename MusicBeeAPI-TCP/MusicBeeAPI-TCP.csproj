@@ -42,9 +42,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="mb_TCPpluginBase.cs" />
     <Compile Include="MusicBeeApiTcp.cs" />
     <Compile Include="MusicBeeInterface.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="mb_TCPHelper.cs" />
+    <Compile Include="TcpMessaging.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
