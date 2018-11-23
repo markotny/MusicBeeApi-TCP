@@ -53,12 +53,6 @@
     <Compile Include="..\MusicBeeAPI-TCP\MusicBeeInterface.cs">
       <Link>MusicBeeInterface.cs</Link>
     </Compile>
-    <Compile Include="..\MusicBeeAPI-TCP\MusicBeeTcpServer.cs">
-      <Link>MusicBeeTcpServer.cs</Link>
-    </Compile>
-    <Compile Include="..\MusicBeeAPI-TCP\TcpMessaging.cs">
-      <Link>TcpMessaging.cs</Link>
-    </Compile>
     <Compile Include="mb_TCPHelper.cs" />
     <Compile Include="mb_TCPpluginBase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -52,15 +52,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\MusicBeeAPI-TCP\MusicBeeInterface.cs">
-      <Link>MusicBeeInterface.cs</Link>
-    </Compile>
-    <Compile Include="..\MusicBeeAPI-TCP\MusicBeeTcpServer.cs">
-      <Link>MusicBeeTcpServer.cs</Link>
-    </Compile>
-    <Compile Include="..\MusicBeeAPI-TCP\TcpMessaging.cs">
-      <Link>TcpMessaging.cs</Link>
-    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -76,7 +67,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MusicBeeAPI-TCP\MusicBeeAPI-TCP.csproj">
-      <Project>{0AD5D7F6-8D43-42F7-B51D-204079C02C71}</Project>
+      <Project>{0ad5d7f6-8d43-42f7-b51d-204079c02c71}</Project>
       <Name>MusicBeeAPI-TCP</Name>
     </ProjectReference>
   </ItemGroup>
