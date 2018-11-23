@@ -9,6 +9,7 @@ namespace MB_TCP_ExampleConsoleApp
 {
     class Program
     {
+        private static NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
         private static Program _exampleApp;
         private MusicBeeTcpClient _musicBeeTcpClient;
 
@@ -19,6 +20,7 @@ namespace MB_TCP_ExampleConsoleApp
             _exampleApp.FunctionSelect();
             Console.WriteLine("Exit? [ENTER]");
             Console.ReadLine();
+            NLog.LogManager.Shutdown();
         }
 
         private void Initialise()
@@ -27,12 +29,13 @@ namespace MB_TCP_ExampleConsoleApp
             _musicBeeTcpClient.PlayerInitialized += _musicBeeTcpClient_PlayerInitialized;
             _musicBeeTcpClient.TrackChanged += _musicBeeTcpClient_TrackChanged;
             _musicBeeTcpClient.PlayerNotification += _musicBeeTcpClient_PlayerNotification;
+            _logger.Debug("Client initialised");
         }
 
         private async void FunctionSelect()
         {
-            int inputINT = 0;
-            while (inputINT >= 0)
+            var inputInt = 0;
+            while (inputInt >= 0)
             {
                 Console.WriteLine("Enter function number. Type negative number to exit. Function examples:\n" +
                                   "Player_PlayPause = 18\n" +
@@ -41,40 +44,34 @@ namespace MB_TCP_ExampleConsoleApp
                 try
                 {
                     var input = Console.ReadLine();
-                    inputINT = int.Parse(input);
-                    var selectedFunc = (TcpMessaging.Command) inputINT;
-                    Console.WriteLine("Function selected: " + selectedFunc);
+                    inputInt = int.Parse(input);
+                    var selectedFunc = (TcpMessaging.Command) inputInt;
+                    _logger.Info("Selected function {0}", selectedFunc);
                     await _musicBeeTcpClient.SendRequest<object>(selectedFunc);
+                    _logger.Debug("Request sent");
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e);
+                    _logger.Error(e, "Function call failed");
                 }
             }
         }
 
         private void _musicBeeTcpClient_PlayerNotification(object sender, MusicBeePlugin.Plugin.NotificationType e)
         {
-            Console.WriteLine("Notification arrived: " + e);
+            _logger.Info("Received notification: {0}", e);
         }
 
         private void _musicBeeTcpClient_TrackChanged(object sender, TrackChangedArgs e)
         {
-            Console.WriteLine("Track changed: new track:" +
-                              "\nTrack name: " + e.Track.Title +
-                              "\nArtist: " + e.Track.Artist +
-                              "\nAlbum: " + e.Track.Album +
-                              "\nDuration:" + e.Track.Duration);
+            _logger.Info("Track changed: \n{0} - {1}, {2} [{3}]",
+                e.Track.Artist, e.Track.Title, e.Track.Album, e.Track.Duration);
         }
 
         private void _musicBeeTcpClient_PlayerInitialized(object sender, PlayerInitializedArgs e)
         {
-            Console.WriteLine("Current state: " + e.State + "" +
-                              "\nCurrent position:" + e.CurrentPosition +
-                              "\nTrack name: " + e.Track.Title +
-                              "\nArtist: " + e.Track.Artist +
-                              "\nAlbum: " + e.Track.Album +
-                              "\nDuration:" + e.Track.Duration);
+            _logger.Info("Current player state: {0}, position: {1}\n{2} - {3}, {4} [{5}]",
+                e.State, e.CurrentPosition, e.Track.Title, e.Track.Artist, e.Track.Album, e.Track.Duration);
         }
 
     }

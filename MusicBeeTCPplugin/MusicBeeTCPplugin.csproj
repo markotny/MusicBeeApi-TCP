@@ -30,9 +30,17 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
+      <HintPath>..\packages\NLog.4.5.11\lib\net45\NLog.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.Transactions" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -42,11 +50,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\MusicBeeAPI-TCP\MusicBeeApiTcp.cs">
-      <Link>MusicBeeApiTcp.cs</Link>
-    </Compile>
     <Compile Include="..\MusicBeeAPI-TCP\MusicBeeInterface.cs">
       <Link>MusicBeeInterface.cs</Link>
+    </Compile>
+    <Compile Include="..\MusicBeeAPI-TCP\MusicBeeTcpServer.cs">
+      <Link>MusicBeeTcpServer.cs</Link>
     </Compile>
     <Compile Include="..\MusicBeeAPI-TCP\TcpMessaging.cs">
       <Link>TcpMessaging.cs</Link>
@@ -54,6 +62,21 @@
     <Compile Include="mb_TCPHelper.cs" />
     <Compile Include="mb_TCPpluginBase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="NLog.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Include="NLog.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MusicBeeAPI-TCP\MusicBeeAPI-TCP.csproj">
+      <Project>{0AD5D7F6-8D43-42F7-B51D-204079C02C71}</Project>
+      <Name>MusicBeeAPI-TCP</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
