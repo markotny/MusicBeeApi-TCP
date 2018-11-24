@@ -11,17 +11,20 @@ namespace MusicBeeAPI_TCP
 {
     public abstract class TcpMessaging
     {
-        protected TcpListener _serverSocket;
-        protected TcpClient _clientSocket;
-        protected NetworkStream _networkStream;
+        protected TcpListener ServerSocket;
+        protected TcpClient ClientSocket;
+        protected NetworkStream NetworkStream;
+
+        private static NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
 
         private Dictionary<Command, TaskCompletionSource<TcpResponse>> _responseStack;
 
         private async void WriteToStreamAsync(object message)
         {
+            _logger.Trace("Begin WriteToStreamAsync");
             try
             {
-                if (!_clientSocket.Connected)
+                if (!ClientSocket.Connected)
                     throw new Exception("Not connected to client socket!");
 
                 byte[] msg;
@@ -36,28 +39,32 @@ namespace MusicBeeAPI_TCP
                     buffer.CopyTo(msg, size.Length);
                 }
 
-                await _networkStream.WriteAsync(msg, 0, msg.Length);
+                await NetworkStream.WriteAsync(msg, 0, msg.Length);
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e.Message);
+                _logger.Error(e, "Failed writing to stream");
             }
-
+            _logger.Trace("End WriteToStreamAsync");
         }
 
         protected async void ReadFromStreamAsync()
         {
+            _logger.Trace("Begin ReadFromStreamAsync");
             _responseStack = new Dictionary<Command, TaskCompletionSource<TcpResponse>>();
-            byte[] sizeBuffer = new byte[sizeof(int)];
-            byte[] buffer;
-            while (_clientSocket.Connected)
+            var sizeBuffer = new byte[sizeof(int)];
+            while (ClientSocket.Connected)
             {
                 try
                 {
-                    await _networkStream.ReadAsync(sizeBuffer, 0, sizeof(int));
+                    await NetworkStream.ReadAsync(sizeBuffer, 0, sizeof(int));
+                    _logger.Debug("ReadFromStreamAsync detected data");
+
                     var size = BitConverter.ToInt32(sizeBuffer, 0);
-                    buffer = new byte[size];
-                    await _networkStream.ReadAsync(buffer, 0, size);
+                    var buffer = new byte[size];
+                    await NetworkStream.ReadAsync(buffer, 0, size);
+                    _logger.Debug("Read data from NetworkStream");
+
                     using (var memStream = new MemoryStream(buffer))
                     {
                         var formatter = new BinaryFormatter();
@@ -66,19 +73,22 @@ namespace MusicBeeAPI_TCP
                 }
                 catch (Exception e)
                 {
-                    Debug.WriteLine(e.Message);
+                    _logger.Error(e, "Reading message from networkStream failed");
                 }
             }
         }
 
         private void ProcessMessage(object msg)
         {
+            _logger.Trace("Begin ProcessMessage");
             switch (msg)
             {
                 case TcpRequest _:
+                    _logger.Info("Received request in network stream");
                     OnRequestArrived((TcpRequest)msg);
                     break;
                 case TcpResponse _:
+                    _logger.Info("Received response in network stream");
                     var response = (TcpResponse) msg;
                     try
                     {
@@ -87,23 +97,27 @@ namespace MusicBeeAPI_TCP
                     }
                     catch (Exception e)
                     {
-                        Console.WriteLine(e);
+                        _logger.Error(e, "Failed fetching response data");
                     }
                     break;
                 case Plugin.NotificationType _:
+                    _logger.Info("Received notification in network stream");
                     OnPlayerNotification((Plugin.NotificationType)msg);
                     break;
                 case PlayerInitializedArgs _:
+                    _logger.Info("Received initialisation info in network stream");
                     OnPlayerInitialized((PlayerInitializedArgs)msg);
                     break;
                 case TrackChangedArgs _:
+                    _logger.Info("Received new track info in network stream");
                     OnTrackChanged((TrackChangedArgs)msg);
                     break;
                 default:
-                    Console.WriteLine("Warning! The following object has been read from stream but not handled:\n Type: "
-                                      + msg.GetType() + "\n Object: " + msg);
+                    _logger.Warn("The following object has been read from stream but not handled:\nType: {0}, data: {1}",
+                        msg.GetType(), msg);
                     break;
             }
+            _logger.Trace("End ProcessMessage");
         }
 
         /// <summary>
@@ -116,7 +130,7 @@ namespace MusicBeeAPI_TCP
         }
 
         /// <summary>
-        /// For calling MusicBee functions through TCP. For list of avaible functions see TcpMessaging.Command enum.
+        /// For calling MusicBee functions through TCP. For list of available functions see TcpMessaging.Command enum.
         /// </summary>
         /// <typeparam name="T">Return type of selected function. If void, use type 'object'</typeparam>
         /// <param name="cmd">Selected function.</param>
@@ -124,6 +138,7 @@ namespace MusicBeeAPI_TCP
         /// <returns></returns>
         public async Task<T> SendRequest<T>(Command cmd, params object[] args)
         {
+            _logger.Trace("Begin SendRequest: {0}", cmd);
             if (!TcpRequest.CheckIfValidParameters(cmd, args))
                 throw new Exception("Invalid function parameters!");
 
@@ -131,29 +146,37 @@ namespace MusicBeeAPI_TCP
             WriteToStreamAsync(request);
 
             if (!request.ResponseRequired)
+            {
+                _logger.Trace("End SendRequest {0} - response not required", cmd);
                 return default(T);
+            }
             
             try
             {
                 _responseStack.Add(cmd, new TaskCompletionSource<TcpResponse>());
+                _logger.Debug("Request {0} - awaiting response", cmd);
+
                 await _responseStack[cmd].Task;
                 _responseStack.TryGetValue(cmd, out var responseTask);
+                _logger.Debug("Request {0} - received response", cmd);
 
                 if (responseTask == null)
                     throw new NullReferenceException("Response not found in responseStack!");
 
                 _responseStack.Remove(cmd);
+                _logger.Trace("End SendRequest {0} - response arrived", cmd);
                 return (T)responseTask.Task.Result.Response;
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                _logger.Error(e, "Failed to get response");
                 throw;
             }
         }
 
         public void SendResponse(Command cmd, object res)
         {
+            _logger.Trace("Begin async SendResponse to request: {0}", cmd);
             var response = new TcpResponse(cmd, res);
             WriteToStreamAsync(response);
         }
