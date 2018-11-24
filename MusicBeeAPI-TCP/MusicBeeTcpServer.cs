@@ -8,37 +8,12 @@ using MusicBeePlugin;
 namespace MusicBeeAPI_TCP
 {
     //SERVER
-    public interface IMusicBeeTcpServer
+    public interface IMusicBeeTcpServer : ITcpMessaging, IDisposable
     {
         void EstablishConnectionAsync();
-        void WriteToStreamAsync(object message);
-        void ReadFromStreamAsync();
-        void ProcessMessage(object msg);
-
-        /// <summary>
-        /// For sending simple, one-object messages/notifications. For function calls through TCP use SendRequest
-        /// </summary>
-        /// <param name="msg">object to send</param>
-        void SendMessage(object msg);
-
-        /// <summary>
-        /// For calling MusicBee functions through TCP. For list of available functions see TcpMessaging.Command enum.
-        /// </summary>
-        /// <typeparam name="T">Return type of selected function. If void, use type 'object'</typeparam>
-        /// <param name="cmd">Selected function.</param>
-        /// <param name="args">All arguments required by selected function. If no parameters required, leave empty.</param>
-        /// <returns></returns>
-        Task<T> SendRequest<T>(TcpMessaging.Command cmd, params object[] args);
-
-        void SendResponse(TcpMessaging.Command cmd, object res);
-        event EventHandler<TcpRequest> RequestArrived;
-        event EventHandler<TcpMessaging.Command> ResponseArrived;
-        event EventHandler<Plugin.NotificationType> PlayerNotification;
-        event EventHandler<PlayerInitializedArgs> PlayerInitialized;
-        event EventHandler<TrackChangedArgs> TrackChanged;
     }
 
-    public class MusicBeeTcpServer : TcpMessaging, IDisposable, IMusicBeeTcpServer
+    public class MusicBeeTcpServer : TcpMessaging, IMusicBeeTcpServer
     {
         private static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
 
