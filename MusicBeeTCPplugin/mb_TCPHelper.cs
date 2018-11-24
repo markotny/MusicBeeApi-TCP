@@ -13,7 +13,7 @@ namespace MusicBeePlugin
 {
     public partial class Plugin
     {
-        private static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         private IMusicBeeTcpServer _mbTcpHelper;
         private Dictionary<int, Delegate> _commandDictionary;
 
@@ -29,7 +29,7 @@ namespace MusicBeePlugin
                     PluginSturtup();
                     break;
                 case NotificationType.TrackChanged:
-                    SendTrackChangedArgs();
+                    SendTrackArgs();
                     break;
             }
         }
@@ -64,18 +64,10 @@ namespace MusicBeePlugin
 
             // Step 4. Activate the configuration
             LogManager.Configuration = config;
-
-            try
-            {
-                _mbTcpHelper = new MusicBeeTcpServer();
-            }
-            catch (Exception e)
-            {
-                Logger.Fatal(e,"Failed to establish connection, closing plugin");
-                Close(PluginCloseReason.StopNoUnload);
-            }
+            
+            _mbTcpHelper = new MusicBeeTcpServer();
             _mbTcpHelper.RequestArrived += ProcessRequest;
-            SendPlayerInitializedArgs();
+
             _commandDictionary = new Dictionary<int, Delegate>()
             {
                 {1, _mbApiInterface.MB_ReleaseString},
@@ -298,17 +290,10 @@ namespace MusicBeePlugin
             return bitImage;
         }
 
-        private async void SendPlayerInitializedArgs()
+        private async void SendPlayerStatusArgs()
         {
-            Logger.Trace("Begin SendPlayerInitializedArgs");
-            var track = new TrackInfo()
-            {
-                Title = _mbApiInterface.NowPlaying_GetFileTag(MetaDataType.TrackTitle),
-                Artist = _mbApiInterface.NowPlaying_GetFileTag(MetaDataType.Artist),
-                Album = _mbApiInterface.NowPlaying_GetFileTag(MetaDataType.Album),
-                Duration = _mbApiInterface.NowPlaying_GetDuration(),
-                Artwork = await GetAlbumArtwork()
-            };
+            Logger.Trace("Begin SendPlayerStatusArgs");
+
             bool currentState;
             switch ((int)_mbApiInterface.Player_GetPlayState())
             {
@@ -323,11 +308,11 @@ namespace MusicBeePlugin
                     currentState = false;
                     break;
             }
-            _mbTcpHelper.SendMessage(new PlayerInitializedArgs(track, _mbApiInterface.Player_GetPosition(), currentState));
-            Logger.Trace("End SendPlayerInitializedArgs");
+            _mbTcpHelper.SendMessage(new PlayerStatusArgs( _mbApiInterface.Player_GetPosition(), currentState));
+            Logger.Trace("End SendPlayerStatusArgs");
         }
 
-        private async void SendTrackChangedArgs()
+        private async void SendTrackArgs()
         {
             var track = new TrackInfo()
             {
@@ -337,7 +322,7 @@ namespace MusicBeePlugin
                 Duration = _mbApiInterface.NowPlaying_GetDuration(),
                 Artwork = await GetAlbumArtwork()
             };
-            _mbTcpHelper.SendMessage(new TrackChangedArgs(track)); 
+            _mbTcpHelper.SendMessage(new TrackArgs(track)); 
         }
     }
 }

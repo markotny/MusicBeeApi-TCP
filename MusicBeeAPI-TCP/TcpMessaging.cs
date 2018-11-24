@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -11,8 +10,8 @@ namespace MusicBeeAPI_TCP
 {
     public interface ITcpMessaging
     {
-        void WriteToStreamAsync(object message);
-        void ReadFromStreamAsync();
+        Task WriteToStreamAsync(object message);
+        Task ReadFromStreamAsync();
         void ProcessMessage(object msg);
 
         /// <summary>
@@ -31,11 +30,18 @@ namespace MusicBeeAPI_TCP
         Task<T> SendRequest<T>(TcpMessaging.Command cmd, params object[] args);
 
         void SendResponse(TcpMessaging.Command cmd, object res);
+
+        /// <summary>
+        /// Use to close connection
+        /// </summary>
+        void Disconnect();
+
+        event EventHandler Disconnected;
         event EventHandler<TcpRequest> RequestArrived;
         event EventHandler<TcpMessaging.Command> ResponseArrived;
         event EventHandler<Plugin.NotificationType> PlayerNotification;
-        event EventHandler<PlayerInitializedArgs> PlayerInitialized;
-        event EventHandler<TrackChangedArgs> TrackChanged;
+        event EventHandler<PlayerStatusArgs> PlayerInitialized;
+        event EventHandler<TrackArgs> TrackChanged;
     }
 
     public abstract class TcpMessaging : ITcpMessaging
@@ -48,7 +54,7 @@ namespace MusicBeeAPI_TCP
 
         private Dictionary<Command, TaskCompletionSource<TcpResponse>> _responseStack;
 
-        public async void WriteToStreamAsync(object message)
+        public async Task WriteToStreamAsync(object message)
         {
             Logger.Trace("Begin WriteToStreamAsync");
             try
@@ -77,7 +83,7 @@ namespace MusicBeeAPI_TCP
             Logger.Trace("End WriteToStreamAsync");
         }
 
-        public async void ReadFromStreamAsync()
+        public async Task ReadFromStreamAsync()
         {
             Logger.Trace("Begin ReadFromStreamAsync");
             _responseStack = new Dictionary<Command, TaskCompletionSource<TcpResponse>>();
@@ -133,13 +139,17 @@ namespace MusicBeeAPI_TCP
                     Logger.Info("Received notification in network stream");
                     OnPlayerNotification((Plugin.NotificationType)msg);
                     break;
-                case PlayerInitializedArgs _:
-                    Logger.Info("Received initialisation info in network stream");
-                    OnPlayerInitialized((PlayerInitializedArgs)msg);
+                case PlayerStatusArgs _:
+                    Logger.Info("Received player status info in network stream");
+                    OnPlayerInitialized((PlayerStatusArgs)msg);
                     break;
-                case TrackChangedArgs _:
+                case TrackArgs _:
                     Logger.Info("Received new track info in network stream");
-                    OnTrackChanged((TrackChangedArgs)msg);
+                    OnTrackChanged((TrackArgs)msg);
+                    break;
+                case "Disconnect":
+                    Logger.Info("Received disconnect order in network stream");
+                    OnDisconnecting();
                     break;
                 default:
                     Logger.Warn("The following object has been read from stream but not handled:\nType: {0}, data: {1}",
@@ -148,23 +158,14 @@ namespace MusicBeeAPI_TCP
             }
             Logger.Trace("End ProcessMessage");
         }
-
-        /// <summary>
-        /// For sending simple, one-object messages/notifications. For function calls through TCP use SendRequest
-        /// </summary>
-        /// <param name="msg">object to send</param>
+        
+        /// <inheritdoc />
         public void SendMessage(object msg)
         {
-            WriteToStreamAsync(msg);
+            var task = WriteToStreamAsync(msg);
         }
 
-        /// <summary>
-        /// For calling MusicBee functions through TCP. For list of available functions see TcpMessaging.Command enum.
-        /// </summary>
-        /// <typeparam name="T">Return type of selected function. If void, use type 'object'</typeparam>
-        /// <param name="cmd">Selected function.</param>
-        /// <param name="args">All arguments required by selected function. If no parameters required, leave empty.</param>
-        /// <returns></returns>
+        /// <inheritdoc />
         public async Task<T> SendRequest<T>(Command cmd, params object[] args)
         {
             Logger.Trace("Begin SendRequest: {0}", cmd);
@@ -172,14 +173,15 @@ namespace MusicBeeAPI_TCP
                 throw new Exception("Invalid function parameters!");
 
             var request = new TcpRequest(cmd, args);
-            WriteToStreamAsync(request);
+            var task = WriteToStreamAsync(request);
 
             if (!request.ResponseRequired)
             {
                 Logger.Trace("End SendRequest {0} - response not required", cmd);
                 return default(T);
             }
-            
+
+            await task;
             try
             {
                 _responseStack.Add(cmd, new TaskCompletionSource<TcpResponse>());
@@ -207,10 +209,26 @@ namespace MusicBeeAPI_TCP
         {
             Logger.Trace("Begin async SendResponse to request: {0}", cmd);
             var response = new TcpResponse(cmd, res);
-            WriteToStreamAsync(response);
+            var task = WriteToStreamAsync(response);
+        }
+
+        public void Disconnect()
+        {
+            if (ClientSocket.Connected)
+            {
+                WriteToStreamAsync("Disconnect")
+                    .ContinueWith(t => ClientSocket.Close());
+            }
         }
 
         //EVENTS
+        public event EventHandler Disconnected;
+        protected virtual void OnDisconnecting()
+        {
+            ClientSocket.Close();
+            Disconnected?.Invoke(this, EventArgs.Empty);
+        }
+
         public event EventHandler<TcpRequest> RequestArrived;
         protected virtual void OnRequestArrived(TcpRequest req) =>
             RequestArrived?.Invoke(this, req);
@@ -223,12 +241,12 @@ namespace MusicBeeAPI_TCP
         protected virtual void OnPlayerNotification(Plugin.NotificationType notification) =>
             PlayerNotification?.Invoke(this, notification);
 
-        public event EventHandler<PlayerInitializedArgs> PlayerInitialized;
-        protected virtual void OnPlayerInitialized(PlayerInitializedArgs args) =>
+        public event EventHandler<PlayerStatusArgs> PlayerInitialized;
+        protected virtual void OnPlayerInitialized(PlayerStatusArgs args) =>
             PlayerInitialized?.Invoke(this, args);
 
-        public event EventHandler<TrackChangedArgs> TrackChanged;
-        protected virtual void OnTrackChanged(TrackChangedArgs args) =>
+        public event EventHandler<TrackArgs> TrackChanged;
+        protected virtual void OnTrackChanged(TrackArgs args) =>
             TrackChanged?.Invoke(this, args);
 
         //LIST OF FUNCTIONS

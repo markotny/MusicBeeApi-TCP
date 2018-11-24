@@ -10,16 +10,33 @@ namespace MusicBeeAPI_TCP
     //SERVER
     public interface IMusicBeeTcpServer : ITcpMessaging, IDisposable
     {
-        void EstablishConnectionAsync();
+        Task AwaitClientAsync();
+        void SetupServer();
     }
 
     public class MusicBeeTcpServer : TcpMessaging, IMusicBeeTcpServer
     {
         private static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public MusicBeeTcpServer(bool startListening = true)
+        public MusicBeeTcpServer()
         {
-            EstablishConnectionAsync();
+            SetupServer();
+        }
+
+        public void SetupServer()
+        {
+            Logger.Trace("Begin SetupServer");
+            const int port = 8888;
+            var ipHostInfo = Dns.GetHostEntry(Dns.GetHostName());
+            var ipAddress = ipHostInfo.AddressList.FirstOrDefault(t => t.AddressFamily == AddressFamily.InterNetwork);
+            if (ipAddress == null)
+                throw new Exception("No IPv4 address for server");
+
+            Logger.Info("Setting up server on {0}:{1}", ipAddress, port);
+            ServerSocket = new TcpListener(ipAddress, port);
+            ServerSocket.Start();
+
+            Logger.Trace("End SetupServer");
         }
 
         public void Dispose()
@@ -39,29 +56,20 @@ namespace MusicBeeAPI_TCP
             }
         }
 
-        public async void EstablishConnectionAsync()
+        public async Task AwaitClientAsync()
         {
-            Logger.Trace("Begin EstablishConnectionAsync");
-
-            const int port = 8888;
-            var ipHostInfo = Dns.GetHostEntry(Dns.GetHostName());
-            var ipAddress = ipHostInfo.AddressList.FirstOrDefault(t => t.AddressFamily == AddressFamily.InterNetwork);
-            if (ipAddress == null)
-                throw new Exception("No IPv4 address for server");
-
-            Logger.Info("Setting up server on {0}:{1}", ipAddress, port);
-            ServerSocket = new TcpListener(ipAddress, port);
+            Logger.Trace("Begin AwaitClientAsync");
+            
             ClientSocket = new TcpClient();
-            ServerSocket.Start();
-            Logger.Debug("Server up, awaiting client");
+            Logger.Debug("Awaiting client");
 
             ClientSocket = await ServerSocket.AcceptTcpClientAsync();
             Logger.Debug("Client connected");
 
             NetworkStream = ClientSocket.GetStream();
-            ReadFromStreamAsync();
+            var task = ReadFromStreamAsync();
 
-            Logger.Trace("End EstablishConnectionAsync");
+            Logger.Trace("End AwaitClientAsync");
         }
     }
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using MusicBeeAPI_TCP;
 
@@ -12,27 +13,54 @@ namespace MB_TCP_ExampleConsoleApp
         private static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
         private static Program _exampleApp;
         private IMusicBeeTcpClient _musicBeeTcpClient;
+        private static CancellationTokenSource _cts;
 
         static void Main(string[] args)
         {
             _exampleApp = new Program();
+
             _exampleApp.Initialise();
-            _exampleApp.FunctionSelect();
-            Console.WriteLine("Exit? [ENTER]");
-            Console.ReadLine();
+            var input = "y";
+            while (string.Equals(input, "y"))
+            {
+                try
+                {
+                    _exampleApp.ConnectToServer();
+                    _cts = new CancellationTokenSource();
+                    var token = _cts.Token;
+                    var task = _exampleApp.FunctionSelect(token);
+                    Console.WriteLine("Reconnect? (y)");
+                    input = Console.ReadLine();
+                }
+                catch (Exception e)
+                {
+                    Logger.Debug(e, "Failed to connect");
+                    Console.WriteLine("Try to reconnect? (y)");
+                    input = Console.ReadLine();
+                }
+            }
             NLog.LogManager.Shutdown();
         }
 
         private void Initialise()
         {
             _musicBeeTcpClient = new MusicBeeTcpClient();
-            _musicBeeTcpClient.PlayerInitialized += _musicBeeTcpClient_PlayerInitialized;
+            _musicBeeTcpClient.PlayerInitialized += _musicBeeTcpClient_StateChanged;
             _musicBeeTcpClient.TrackChanged += _musicBeeTcpClient_TrackChanged;
             _musicBeeTcpClient.PlayerNotification += _musicBeeTcpClient_PlayerNotification;
+            _musicBeeTcpClient.Disconnected += (s, a) => Console.WriteLine("Connection lost.");
+            
             Logger.Debug("Client initialised");
         }
 
-        private async void FunctionSelect()
+        private void ConnectToServer()
+        {
+            var task = Task.Run(async () => await _musicBeeTcpClient.EstablishConnectionAsync());
+            if (task.Result == false)
+                throw new Exception("Connection failed");
+        }
+
+        private async Task FunctionSelect(CancellationToken token)
         {
             var inputInt = 0;
             while (inputInt >= 0)
@@ -44,11 +72,17 @@ namespace MB_TCP_ExampleConsoleApp
                 try
                 {
                     var input = Console.ReadLine();
+                    token.ThrowIfCancellationRequested();
                     inputInt = int.Parse(input);
                     var selectedFunc = (TcpMessaging.Command) inputInt;
                     Logger.Info("Selected function {0}", selectedFunc);
-                    await _musicBeeTcpClient.SendRequest<object>(selectedFunc);
+                    await _musicBeeTcpClient.SendRequest<object>(selectedFunc).ConfigureAwait(false);
                     Logger.Debug("Request sent");
+                }
+                catch (OperationCanceledException e)
+                {
+                    Logger.Debug(e, "Requested cancellation");
+                    break;
                 }
                 catch (Exception e)
                 {
@@ -56,22 +90,23 @@ namespace MB_TCP_ExampleConsoleApp
                 }
             }
         }
+        
 
         private void _musicBeeTcpClient_PlayerNotification(object sender, MusicBeePlugin.Plugin.NotificationType e)
         {
             Logger.Info("Received notification: {0}", e);
         }
 
-        private void _musicBeeTcpClient_TrackChanged(object sender, TrackChangedArgs e)
+        private void _musicBeeTcpClient_TrackChanged(object sender, TrackArgs e)
         {
             Logger.Info("Track changed: \n{0} - {1}, {2} [{3}]",
                 e.Track.Artist, e.Track.Title, e.Track.Album, e.Track.Duration);
         }
 
-        private void _musicBeeTcpClient_PlayerInitialized(object sender, PlayerInitializedArgs e)
+        private void _musicBeeTcpClient_StateChanged(object sender, PlayerStatusArgs e)
         {
-            Logger.Info("Current player state: {0}, position: {1}\n{2} - {3}, {4} [{5}]",
-                e.State, e.CurrentPosition, e.Track.Title, e.Track.Artist, e.Track.Album, e.Track.Duration);
+            Logger.Info("Current player state: {0}, position: {1}",
+                e.State, e.CurrentPosition);
         }
 
     }

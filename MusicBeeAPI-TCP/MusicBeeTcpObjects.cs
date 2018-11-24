@@ -77,31 +77,28 @@ namespace MusicBeeAPI_TCP
     }
 
     [Serializable()]
-    public class PlayerInitializedArgs : EventArgs
+    public class PlayerStatusArgs : EventArgs
     {
-        public TrackInfo Track { get; set; }
         public int CurrentPosition { get; set; }
         public bool State { get; set; }
-        public PlayerInitializedArgs()
+        public PlayerStatusArgs()
         {
-            Track = new TrackInfo();
             CurrentPosition = 0;
             State = false;
         }
-        public PlayerInitializedArgs(TrackInfo track, int pos, bool state)
+        public PlayerStatusArgs(int pos, bool state)
         {
-            Track = track;
             CurrentPosition = pos;
             State = state;
         }
     }
 
     [Serializable()]
-    public class TrackChangedArgs : EventArgs
+    public class TrackArgs : EventArgs
     {
         public TrackInfo Track { get; set; }
 
-        public TrackChangedArgs(TrackInfo tr)
+        public TrackArgs(TrackInfo tr)
         {
             Track = tr;
         }

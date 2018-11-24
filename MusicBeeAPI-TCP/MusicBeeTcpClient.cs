@@ -4,28 +4,18 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using MusicBeePlugin;
+using NLog;
 
 namespace MusicBeeAPI_TCP
 {
     public interface IMusicBeeTcpClient : ITcpMessaging, IDisposable
     {
-        void EstablishConnectionAsync(int frequency, int timeout);
+        Task<bool> EstablishConnectionAsync(int frequency = 10, int timeout = 1);
     }
 
     public class MusicBeeTcpClient : TcpMessaging, IMusicBeeTcpClient
     {
-        private static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
-
-        /// <summary>
-        /// Creates client socket and tries to connect to server socket
-        /// </summary>
-        /// <param name="frequency">Time between connection attempts in SECONDS</param>
-        /// <param name="timeout">Limit in MINUTES for connection attempts</param>
-        public MusicBeeTcpClient(int frequency = 10, int timeout = 1)
-        {
-            EstablishConnectionAsync(frequency, timeout);
-        }
+        private static readonly Logger Logger = NLog.LogManager.GetCurrentClassLogger();
 
         public void Dispose()
         {
@@ -43,7 +33,7 @@ namespace MusicBeeAPI_TCP
             }
         }
 
-        public async void EstablishConnectionAsync(int frequency, int timeout)
+        public async Task<bool> EstablishConnectionAsync(int frequency, int timeout)
         {
             Logger.Trace("Begin EstablishConnectionAsync");
 
@@ -68,7 +58,7 @@ namespace MusicBeeAPI_TCP
                         {
                             await ClientSocket.ConnectAsync(ipAddress, port);
                             NetworkStream = ClientSocket.GetStream();
-                            ReadFromStreamAsync();
+                            var task = ReadFromStreamAsync();
                             Logger.Info("Established connection to server");
                         }
                         catch (Exception e)
@@ -80,12 +70,14 @@ namespace MusicBeeAPI_TCP
                         }
                     }
                 }, token);
+                Logger.Trace("End EstablishConnectionAsync");
+                return true;
             }
             catch (OperationCanceledException e)
             {
                 Logger.Fatal(e, "Timeout while connecting to server");
+                return false;
             }
-            Logger.Trace("End EstablishConnectionAsync");
         }
     }
 }
