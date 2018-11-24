@@ -4,12 +4,43 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using MusicBeePlugin;
 
 namespace MusicBeeAPI_TCP
 {
-    public class MusicBeeTcpClient : TcpMessaging, IDisposable
+    public interface IMusicBeeTcpClient
     {
-        private static NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
+        void EstablishConnectionAsync(int frequency, int timeout);
+        void WriteToStreamAsync(object message);
+        void ReadFromStreamAsync();
+        void ProcessMessage(object msg);
+
+        /// <summary>
+        /// For sending simple, one-object messages/notifications. For function calls through TCP use SendRequest
+        /// </summary>
+        /// <param name="msg">object to send</param>
+        void SendMessage(object msg);
+
+        /// <summary>
+        /// For calling MusicBee functions through TCP. For list of available functions see TcpMessaging.Command enum.
+        /// </summary>
+        /// <typeparam name="T">Return type of selected function. If void, use type 'object'</typeparam>
+        /// <param name="cmd">Selected function.</param>
+        /// <param name="args">All arguments required by selected function. If no parameters required, leave empty.</param>
+        /// <returns></returns>
+        Task<T> SendRequest<T>(TcpMessaging.Command cmd, params object[] args);
+
+        void SendResponse(TcpMessaging.Command cmd, object res);
+        event EventHandler<TcpRequest> RequestArrived;
+        event EventHandler<TcpMessaging.Command> ResponseArrived;
+        event EventHandler<Plugin.NotificationType> PlayerNotification;
+        event EventHandler<PlayerInitializedArgs> PlayerInitialized;
+        event EventHandler<TrackChangedArgs> TrackChanged;
+    }
+
+    public class MusicBeeTcpClient : TcpMessaging, IDisposable, IMusicBeeTcpClient
+    {
+        private static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
 
         /// <summary>
         /// Creates client socket and tries to connect to server socket
@@ -37,9 +68,9 @@ namespace MusicBeeAPI_TCP
             }
         }
 
-        private async void EstablishConnectionAsync(int frequency, int timeout)
+        public async void EstablishConnectionAsync(int frequency, int timeout)
         {
-            _logger.Trace("Begin EstablishConnectionAsync");
+            Logger.Trace("Begin EstablishConnectionAsync");
 
             const int port = 8888;
             var ipHostInfo = Dns.GetHostEntry(Dns.GetHostName());
@@ -47,7 +78,7 @@ namespace MusicBeeAPI_TCP
             if (ipAddress == null)
                 throw new Exception("Unable to find an IPv4 server address");
 
-            _logger.Info("Connecting to server on {0}:{1}", ipAddress, port);
+            Logger.Info("Connecting to server on {0}:{1}", ipAddress, port);
             ClientSocket = new TcpClient();
 
             try
@@ -63,13 +94,13 @@ namespace MusicBeeAPI_TCP
                             await ClientSocket.ConnectAsync(ipAddress, port);
                             NetworkStream = ClientSocket.GetStream();
                             ReadFromStreamAsync();
-                            _logger.Info("Established connection to server");
+                            Logger.Info("Established connection to server");
                         }
                         catch (Exception e)
                         {
                             token.ThrowIfCancellationRequested();
 
-                            _logger.Debug(e, "Unable to connect to server, retrying in 10s");
+                            Logger.Debug(e, "Unable to connect to server, retrying in 10s");
                             await Task.Delay(TimeSpan.FromSeconds(frequency), token);
                         }
                     }
@@ -77,9 +108,9 @@ namespace MusicBeeAPI_TCP
             }
             catch (OperationCanceledException e)
             {
-                _logger.Fatal(e, "Timeout while connecting to server");
+                Logger.Fatal(e, "Timeout while connecting to server");
             }
-            _logger.Trace("End EstablishConnectionAsync");
+            Logger.Trace("End EstablishConnectionAsync");
         }
     }
 }

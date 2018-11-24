@@ -13,13 +13,13 @@ namespace MusicBeePlugin
 {
     public partial class Plugin
     {
-        private static NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
-        private MusicBeeTcpServer _mbTcpHelper;
+        private static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
+        private IMusicBeeTcpServer _mbTcpHelper;
         private Dictionary<int, Delegate> _commandDictionary;
 
         public void ReceiveNotification(string sourceFileUrl, NotificationType type)
         {
-            _logger.Debug("Received notification: {0}", type);
+            Logger.Debug("Received notification: {0}", type);
             //if sending all notifications through TCP
             //_mbTcpHelper.SendMessage(type);
           
@@ -34,7 +34,7 @@ namespace MusicBeePlugin
             }
         }
 
-        private void PluginSturtup()
+        private void PluginSturtup()    //try to rename -> enum should still work
         {
             //setup NLog
             // Step 1. Create configuration object 
@@ -71,7 +71,7 @@ namespace MusicBeePlugin
             }
             catch (Exception e)
             {
-                _logger.Fatal(e,"Failed to establish connection, closing plugin");
+                Logger.Fatal(e,"Failed to establish connection, closing plugin");
                 Close(PluginCloseReason.StopNoUnload);
             }
             _mbTcpHelper.RequestArrived += ProcessRequest;
@@ -242,8 +242,8 @@ namespace MusicBeePlugin
 
         private void ProcessRequest(object sender, TcpRequest req)
         {
-            _logger.Trace("Begin ProcessRequest");
-            _logger.Info("Requested command: {0}", req.PlayerRequest);
+            Logger.Trace("Begin ProcessRequest");
+            Logger.Info("Requested command: {0}", req.PlayerRequest);
             if (!req.ResponseRequired)
             {
                 _commandDictionary[(int)req.PlayerRequest].DynamicInvoke(req.Arguments);
@@ -256,14 +256,14 @@ namespace MusicBeePlugin
             }
             catch (Exception e)
             {
-                _logger.Error(e,"Sending response failed");
+                Logger.Error(e,"Sending response failed");
             }
-            _logger.Trace("End ProcessRequest");
+            Logger.Trace("End ProcessRequest");
         }
 
         private async Task<Bitmap> GetAlbumArtwork()
         {
-            _logger.Trace("Begin GetAlbumArtwork");
+            Logger.Trace("Begin GetAlbumArtwork");
             string base64String = null;
             Bitmap bitImage = null;
             var tries = 5;
@@ -281,26 +281,26 @@ namespace MusicBeePlugin
                     tries--;
                     if (tries == 0)
                     {
-                        _logger.Error(e,"Fetching artwork failed - aborting");
+                        Logger.Error(e,"Fetching artwork failed - aborting");
                         break;
                     }
-                    _logger.Error(e, "Fetching artwork failed - trying again in 20ms");
+                    Logger.Error(e, "Fetching artwork failed - trying again in 20ms");
                     await Task.Delay(20);
                 }
 
                 catch (Exception e)
                 {
-                    _logger.Error(e,"Fetching artwork failed - unknown exception");
+                    Logger.Error(e,"Fetching artwork failed - unknown exception");
                     break;
                 }
             }
-            _logger.Trace("End GetAlbumArtwork");
+            Logger.Trace("End GetAlbumArtwork");
             return bitImage;
         }
 
         private async void SendPlayerInitializedArgs()
         {
-            _logger.Trace("Begin SendPlayerInitializedArgs");
+            Logger.Trace("Begin SendPlayerInitializedArgs");
             var track = new TrackInfo()
             {
                 Title = _mbApiInterface.NowPlaying_GetFileTag(MetaDataType.TrackTitle),
@@ -324,7 +324,7 @@ namespace MusicBeePlugin
                     break;
             }
             _mbTcpHelper.SendMessage(new PlayerInitializedArgs(track, _mbApiInterface.Player_GetPosition(), currentState));
-            _logger.Trace("End SendPlayerInitializedArgs");
+            Logger.Trace("End SendPlayerInitializedArgs");
         }
 
         private async void SendTrackChangedArgs()
