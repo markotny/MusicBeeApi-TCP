@@ -50,6 +50,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="MusicBeeInterface.cs" />
     <Compile Include="MusicBeeTcpServer.cs" />
     <Compile Include="MusicBeeTcpObjects.cs" />
     <Compile Include="MusicBeeTcpClient.cs" />

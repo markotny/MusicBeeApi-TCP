@@ -14,27 +14,11 @@ namespace MusicBeeAPI_TCP
         /// <summary>
         /// Creates client socket and tries to connect to server socket
         /// </summary>
-        /// <param name="startListening">If true, starts listening to messages from stream after connection is established</param>
         /// <param name="frequency">Time between connection attempts in SECONDS</param>
-        /// <param name="timeout">Limit in MINUTES for connection attempts, 0 for no limit</param>
-        public MusicBeeTcpClient(bool startListening = true, int frequency = 10, int timeout = 0)
+        /// <param name="timeout">Limit in MINUTES for connection attempts</param>
+        public MusicBeeTcpClient(int frequency = 10, int timeout = 1)
         {
-            try
-            {
-                EstablishConnectionAsync(frequency, timeout);
-                if (startListening)
-                    ReadFromStreamAsync();
-            }
-            catch (OperationCanceledException e)
-            {
-                _logger.Fatal(e, "Timeout while connecting to server");
-                throw;
-            }
-            catch (Exception e)
-            {
-                _logger.Fatal(e, "Failed to connect to server");
-                throw;
-            }
+            EstablishConnectionAsync(frequency, timeout);
         }
 
         public void Dispose()
@@ -66,28 +50,35 @@ namespace MusicBeeAPI_TCP
             _logger.Info("Connecting to server on {0}:{1}", ipAddress, port);
             ClientSocket = new TcpClient();
 
-            var tokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(timeout));
-            var token = tokenSource.Token;
-            await Task.Run(async () =>
+            try
             {
-                while (!ClientSocket.Connected)
+                var tokenSource = new CancellationTokenSource(TimeSpan.FromMinutes(timeout));
+                var token = tokenSource.Token;
+                await Task.Run(async () =>
                 {
-                    try
+                    while (!ClientSocket.Connected)
                     {
-                        await ClientSocket.ConnectAsync(ipAddress, port);
-                        NetworkStream = ClientSocket.GetStream();
+                        try
+                        {
+                            await ClientSocket.ConnectAsync(ipAddress, port);
+                            NetworkStream = ClientSocket.GetStream();
+                            ReadFromStreamAsync();
+                            _logger.Info("Established connection to server");
+                        }
+                        catch (Exception e)
+                        {
+                            token.ThrowIfCancellationRequested();
 
-                        _logger.Info("Established connection to server");
+                            _logger.Debug(e, "Unable to connect to server, retrying in 10s");
+                            await Task.Delay(TimeSpan.FromSeconds(frequency), token);
+                        }
                     }
-                    catch (Exception e)
-                    {
-                        token.ThrowIfCancellationRequested();
-
-                        _logger.Debug(e, "Unable to connect to server, retrying in 10s");
-                        await Task.Delay(TimeSpan.FromSeconds(frequency), token);
-                    }
-                }
-            }, token);
+                }, token);
+            }
+            catch (OperationCanceledException e)
+            {
+                _logger.Fatal(e, "Timeout while connecting to server");
+            }
             _logger.Trace("End EstablishConnectionAsync");
         }
     }

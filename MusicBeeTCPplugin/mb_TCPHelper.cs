@@ -5,17 +5,21 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using MusicBeeAPI_TCP;
+using NLog;
+using NLog.Config;
+using NLog.Targets;
 
 namespace MusicBeePlugin
 {
     public partial class Plugin
     {
+        private static NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
         private MusicBeeTcpServer _mbTcpHelper;
         private Dictionary<int, Delegate> _commandDictionary;
 
         public void ReceiveNotification(string sourceFileUrl, NotificationType type)
         {
-
+            _logger.Debug("Received notification: {0}", type);
             //if sending all notifications through TCP
             //_mbTcpHelper.SendMessage(type);
           
@@ -32,7 +36,44 @@ namespace MusicBeePlugin
 
         private void PluginSturtup()
         {
-            _mbTcpHelper = new MusicBeeTcpServer(true);
+            //setup NLog
+            // Step 1. Create configuration object 
+            var config = new NLog.Config.LoggingConfiguration();
+
+            // Step 2. Create targets
+            var debugTarget = new DebugTarget("target1")
+            {
+                Layout = @"${date:format=HH\:mm\:ss} ${level} ${message} ${exception}"
+            };
+            config.AddTarget(debugTarget);
+
+            var fileTarget = new FileTarget("target2")
+            {
+                FileName = "D:/logs/Plugin/${shortdate}.log",
+                Layout = "${longdate} ${uppercase:${level}} ${message}  ${exception}"
+            };
+            config.AddTarget(fileTarget);
+
+
+            // Step 3. Define rules
+            var rule1 = new LoggingRule("*", LogLevel.Debug, debugTarget);
+            config.LoggingRules.Add(rule1);
+
+            var rule2 = new LoggingRule("*", LogLevel.Trace, fileTarget);
+            config.LoggingRules.Add(rule2);
+
+            // Step 4. Activate the configuration
+            LogManager.Configuration = config;
+
+            try
+            {
+                _mbTcpHelper = new MusicBeeTcpServer();
+            }
+            catch (Exception e)
+            {
+                _logger.Fatal(e,"Failed to establish connection, closing plugin");
+                Close(PluginCloseReason.StopNoUnload);
+            }
             _mbTcpHelper.RequestArrived += ProcessRequest;
             SendPlayerInitializedArgs();
             _commandDictionary = new Dictionary<int, Delegate>()
@@ -201,6 +242,8 @@ namespace MusicBeePlugin
 
         private void ProcessRequest(object sender, TcpRequest req)
         {
+            _logger.Trace("Begin ProcessRequest");
+            _logger.Info("Requested command: {0}", req.PlayerRequest);
             if (!req.ResponseRequired)
             {
                 _commandDictionary[(int)req.PlayerRequest].DynamicInvoke(req.Arguments);
@@ -213,42 +256,51 @@ namespace MusicBeePlugin
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                _logger.Error(e,"Sending response failed");
             }
-          
+            _logger.Trace("End ProcessRequest");
         }
 
         private async Task<Bitmap> GetAlbumArtwork()
         {
+            _logger.Trace("Begin GetAlbumArtwork");
             string base64String = null;
             Bitmap bitImage = null;
+            var tries = 5;
             while (base64String == null)
             {
                 try
                 {
-                    base64String = _mbApiInterface.NowPlaying_GetArtwork();
-                    if (base64String == null)
-                        base64String = _mbApiInterface.NowPlaying_GetDownloadedArtwork();
-                    byte[] bitmapData = Convert.FromBase64String(base64String);
-                    MemoryStream streamBitmap = new MemoryStream(bitmapData);
+                    base64String = _mbApiInterface.NowPlaying_GetArtwork() ?? _mbApiInterface.NowPlaying_GetDownloadedArtwork();
+                    var bitmapData = Convert.FromBase64String(base64String);
+                    var streamBitmap = new MemoryStream(bitmapData);
                     bitImage = new Bitmap((Bitmap)Image.FromStream(streamBitmap));
                 }
-                catch (ArgumentNullException)
+                catch (ArgumentNullException e)
                 {
-                    Debug.WriteLine("MB: Couldn't fetch artwork, trying again...");
+                    tries--;
+                    if (tries == 0)
+                    {
+                        _logger.Error(e,"Fetching artwork failed - aborting");
+                        break;
+                    }
+                    _logger.Error(e, "Fetching artwork failed - trying again in 20ms");
                     await Task.Delay(20);
                 }
 
                 catch (Exception e)
                 {
-                    Debug.WriteLine("MB: " + e.Message);
+                    _logger.Error(e,"Fetching artwork failed - unknown exception");
+                    break;
                 }
             }
+            _logger.Trace("End GetAlbumArtwork");
             return bitImage;
         }
 
         private async void SendPlayerInitializedArgs()
         {
+            _logger.Trace("Begin SendPlayerInitializedArgs");
             var track = new TrackInfo()
             {
                 Title = _mbApiInterface.NowPlaying_GetFileTag(MetaDataType.TrackTitle),
@@ -272,6 +324,7 @@ namespace MusicBeePlugin
                     break;
             }
             _mbTcpHelper.SendMessage(new PlayerInitializedArgs(track, _mbApiInterface.Player_GetPosition(), currentState));
+            _logger.Trace("End SendPlayerInitializedArgs");
         }
 
         private async void SendTrackChangedArgs()
@@ -284,7 +337,7 @@ namespace MusicBeePlugin
                 Duration = _mbApiInterface.NowPlaying_GetDuration(),
                 Artwork = await GetAlbumArtwork()
             };
-            _mbTcpHelper.SendMessage(new TrackChangedArgs(track));
+            _mbTcpHelper.SendMessage(new TrackChangedArgs(track)); 
         }
     }
 }

@@ -12,17 +12,7 @@ namespace MusicBeeAPI_TCP
 
         public MusicBeeTcpServer(bool startListening = true)
         {
-            try
-            {
-                EstablishConnectionAsync();
-                if (startListening)
-                    ReadFromStreamAsync();
-            }
-            catch (Exception e)
-            {
-                _logger.Fatal(e, "Failed to setup server");
-                throw;
-            }
+            EstablishConnectionAsync();
         }
 
         public void Dispose()
@@ -62,6 +52,7 @@ namespace MusicBeeAPI_TCP
             _logger.Debug("Client connected");
 
             NetworkStream = ClientSocket.GetStream();
+            ReadFromStreamAsync();
 
             _logger.Trace("End EstablishConnectionAsync");
         }

@@ -58,9 +58,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="NLog.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <None Include="NLog.xsd">
       <SubType>Designer</SubType>
     </None>
@@ -74,6 +71,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy  "$(TargetDir)mb_TCPHelper.dll" "C:\Program Files (x86)\MusicBee\Plugins\" /Y</PostBuildEvent>
+    <PostBuildEvent>xcopy  "$(TargetDir)mb_TCPHelper.dll" "C:\Program Files (x86)\MusicBee\Plugins\" /Y
+xcopy  "$(TargetDir)MusicBeeAPI-TCP.dll" "C:\Program Files (x86)\MusicBee\Plugins\" /Y</PostBuildEvent>
   </PropertyGroup>
 </Project>

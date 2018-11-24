@@ -21,9 +21,9 @@ namespace MusicBeeAPI_TCP
 
         private async void WriteToStreamAsync(object message)
         {
+            _logger.Trace("Begin WriteToStreamAsync");
             try
             {
-                _logger.Trace("Begin WriteToStreamAsync");
                 if (!ClientSocket.Connected)
                     throw new Exception("Not connected to client socket!");
 
@@ -40,13 +40,12 @@ namespace MusicBeeAPI_TCP
                 }
 
                 await NetworkStream.WriteAsync(msg, 0, msg.Length);
-                _logger.Trace("End WriteToStreamAsync");
             }
             catch (Exception e)
             {
                 _logger.Error(e, "Failed writing to stream");
             }
-
+            _logger.Trace("End WriteToStreamAsync");
         }
 
         protected async void ReadFromStreamAsync()
@@ -118,6 +117,7 @@ namespace MusicBeeAPI_TCP
                         msg.GetType(), msg);
                     break;
             }
+            _logger.Trace("End ProcessMessage");
         }
 
         /// <summary>
