@@ -95,7 +95,7 @@ namespace MusicBeeAPI_TCP
                 try
                 {
                     await NetworkStream.ReadAsync(sizeBuffer, 0, sizeof(int));
-                    Logger.Debug("ReadFromStreamAsync detected data");
+                    Logger.Debug("Detected data in stream");
 
                     var size = BitConverter.ToInt32(sizeBuffer, 0);
                     if (size == 0)

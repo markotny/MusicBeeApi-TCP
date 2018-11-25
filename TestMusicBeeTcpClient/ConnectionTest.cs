@@ -53,6 +53,8 @@ namespace TestMusicBeeTcpClient
                     var formatter = new BinaryFormatter();
                     var msg = formatter.Deserialize(memStream);
                     Debug.WriteLine(">{0}", msg);
+                    if (msg.Equals("Disconnect"))
+                        ClientSocket.Close();
                 }
             }
         }
@@ -74,7 +76,7 @@ namespace TestMusicBeeTcpClient
             await NetworkStream.WriteAsync(msg, 0, msg.Length);
         }
 
-        //[TestCleanup]
+        [TestCleanup]
         public void CloseServer()
         {
             if (ClientSocket.Connected)
@@ -86,12 +88,11 @@ namespace TestMusicBeeTcpClient
         [TestMethod]
         public async Task TestEstablishConnectionAsync()
         {
-            var task = SetupServer();
+            var task = SetupServer(); 
             IMusicBeeTcpClient client = new MusicBeeTcpClient();
             
             var connected = await client.EstablishConnectionAsync();
-
-            CloseServer();
+            
             Assert.IsTrue(connected);
         }
 
@@ -114,7 +115,9 @@ namespace TestMusicBeeTcpClient
             await client.EstablishConnectionAsync();
 
             client.Disconnect();
-            CloseServer();
+            await Task.Delay(50);
+
+            Assert.IsFalse(client.IsConnected() && ClientSocket.Connected);
         }
 
         [TestMethod]
@@ -123,14 +126,12 @@ namespace TestMusicBeeTcpClient
             var task = SetupServer();
             
             IMusicBeeTcpClient client = new MusicBeeTcpClient();
-
             await client.EstablishConnectionAsync();
 
             await ServerSendMessage("Disconnect");
 
-            await Task.Delay(50); // to make sure the message was received
-
-            CloseServer();
+            await Task.Delay(50);
+            
             Assert.IsFalse(client.IsConnected());
         }
 
@@ -140,11 +141,10 @@ namespace TestMusicBeeTcpClient
             var task = SetupServer();
 
             IMusicBeeTcpClient client = new MusicBeeTcpClient();
-
             await client.EstablishConnectionAsync();
 
-            CloseServer();
-            await Task.Delay(50); // to make sure the close is detected
+            ClientSocket.Close();
+            await Task.Delay(50);
             
             Assert.IsFalse(client.IsConnected());
         }

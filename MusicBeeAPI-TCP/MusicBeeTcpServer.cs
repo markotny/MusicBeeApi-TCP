@@ -10,7 +10,7 @@ namespace MusicBeeAPI_TCP
     //SERVER
     public interface IMusicBeeTcpServer : ITcpMessaging, IDisposable
     {
-        Task AwaitClientAsync();
+        Task<bool> AwaitClientAsync();
         void SetupServer();
     }
 
@@ -56,7 +56,7 @@ namespace MusicBeeAPI_TCP
             }
         }
 
-        public async Task AwaitClientAsync()
+        public async Task<bool> AwaitClientAsync()
         {
             Logger.Trace("Begin AwaitClientAsync");
             
@@ -70,6 +70,7 @@ namespace MusicBeeAPI_TCP
             var task = ReadFromStreamAsync();
 
             Logger.Trace("End AwaitClientAsync");
+            return true;
         }
     }
 }
