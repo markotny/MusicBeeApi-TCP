@@ -8,6 +8,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MusicBeeAPI_TCP;
+using MusicBeeAPI_TCP.Fakes;
 
 namespace TestMusicBeeTcpClient
 {
@@ -18,7 +19,7 @@ namespace TestMusicBeeTcpClient
         protected TcpClient ClientSocket;
         protected NetworkStream NetworkStream;
 
-        //[TestInitialize] -> Test framework awaits TestInitialize which in turn hangs on awaiting AcceptTcpClientAsync() and doesn't start actual test
+        //[TestInitialize] -> Test framework hangs on awaiting AcceptTcpClientAsync() and doesn't start actual test
                             //-> run SetupServer directly from test
         public async Task SetupServer()
         {
@@ -51,16 +52,34 @@ namespace TestMusicBeeTcpClient
                 {
                     var formatter = new BinaryFormatter();
                     var msg = formatter.Deserialize(memStream);
-                    Debug.WriteLine(msg);
+                    Debug.WriteLine(">{0}", msg);
                 }
             }
+        }
+
+        public async Task ServerSendMessage(object message)
+        {
+            byte[] msg;
+            using (var memStream = new MemoryStream())
+            {
+                var formatter = new BinaryFormatter();
+                formatter.Serialize(memStream, message);
+                var buffer = memStream.GetBuffer();
+                var size = BitConverter.GetBytes(buffer.Length);
+                msg = new byte[size.Length + buffer.Length];
+                size.CopyTo(msg, 0);
+                buffer.CopyTo(msg, size.Length);
+            }
+
+            await NetworkStream.WriteAsync(msg, 0, msg.Length);
         }
 
         //[TestCleanup]
         public void CloseServer()
         {
-            if (!ClientSocket.Connected) return;
-            ClientSocket.Close();
+            if (ClientSocket.Connected)
+                ClientSocket.Close();
+
             ServerSocket.Stop();
         }
 
@@ -70,21 +89,64 @@ namespace TestMusicBeeTcpClient
             var task = SetupServer();
             IMusicBeeTcpClient client = new MusicBeeTcpClient();
             
-
-            var actual = await client.EstablishConnectionAsync();
+            var connected = await client.EstablishConnectionAsync();
 
             CloseServer();
-            Assert.IsTrue(actual);
+            Assert.IsTrue(connected);
         }
 
-        [TestMethod]
+        //[TestMethod] (succeeded, disabled because lowest timeout is 1 minute)
         public async Task TestEstablishConnectionAsyncTimeout()
         {
             IMusicBeeTcpClient client = new MusicBeeTcpClient();
 
-            var actual = await client.EstablishConnectionAsync();
+            var connected = await client.EstablishConnectionAsync();
             
-            Assert.IsFalse(actual);
+            Assert.IsFalse(connected);
+        }
+
+        [TestMethod]
+        public async Task TestDisconnect()
+        {
+            var task = SetupServer();
+            IMusicBeeTcpClient client = new MusicBeeTcpClient();
+
+            await client.EstablishConnectionAsync();
+
+            client.Disconnect();
+            CloseServer();
+        }
+
+        [TestMethod]
+        public async Task TestDetectCloseConnection()
+        {
+            var task = SetupServer();
+            
+            IMusicBeeTcpClient client = new MusicBeeTcpClient();
+
+            await client.EstablishConnectionAsync();
+
+            await ServerSendMessage("Disconnect");
+
+            await Task.Delay(50); // to make sure the message was received
+
+            CloseServer();
+            Assert.IsFalse(client.IsConnected());
+        }
+
+        [TestMethod]
+        public async Task TestAbruptDisconnect()
+        {
+            var task = SetupServer();
+
+            IMusicBeeTcpClient client = new MusicBeeTcpClient();
+
+            await client.EstablishConnectionAsync();
+
+            CloseServer();
+            await Task.Delay(50); // to make sure the close is detected
+            
+            Assert.IsFalse(client.IsConnected());
         }
     }
 }

@@ -36,6 +36,8 @@ namespace MusicBeeAPI_TCP
         /// </summary>
         void Disconnect();
 
+        bool IsConnected();
+
         event EventHandler Disconnected;
         event EventHandler<TcpRequest> RequestArrived;
         event EventHandler<TcpMessaging.Command> ResponseArrived;
@@ -96,21 +98,41 @@ namespace MusicBeeAPI_TCP
                     Logger.Debug("ReadFromStreamAsync detected data");
 
                     var size = BitConverter.ToInt32(sizeBuffer, 0);
-                    var buffer = new byte[size];
-                    await NetworkStream.ReadAsync(buffer, 0, size);
-                    Logger.Debug("Read data from NetworkStream");
-
-                    using (var memStream = new MemoryStream(buffer))
+                    if (size == 0)
                     {
-                        var formatter = new BinaryFormatter();
-                        ProcessMessage(formatter.Deserialize(memStream));
+                        Logger.Debug("Received 0-length message - keep-alive or socet closing. Sending keep-alive to test connection...");
+                        await SendKeepAlive();
+                    }
+                    else
+                    {
+                        var buffer = new byte[size];
+                        await NetworkStream.ReadAsync(buffer, 0, size);
+                        Logger.Debug("Read data from NetworkStream");
+
+                        using (var memStream = new MemoryStream(buffer))
+                        {
+                            var formatter = new BinaryFormatter();
+                            ProcessMessage(formatter.Deserialize(memStream));
+                        }
                     }
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e, "Reading message from networkStream failed");
+                    if (!ClientSocket.Connected)
+                        Logger.Error(e, "Reading message from networkStream failed - Socet is closed");
+                    else
+                    {
+                        Logger.Error(e, "Reading message from networkStream failed - Sending keep-alive...");
+                        await SendKeepAlive();
+                    }
                 }
             }
+        }
+
+        private async Task SendKeepAlive()
+        {
+            var keepAlive = BitConverter.GetBytes((int)0);
+            await WriteToStreamAsync(keepAlive);
         }
 
         public void ProcessMessage(object msg)
@@ -221,6 +243,10 @@ namespace MusicBeeAPI_TCP
             }
         }
 
+        public bool IsConnected()
+        {
+            return ClientSocket.Connected;
+        }
         //EVENTS
         public event EventHandler Disconnected;
         protected virtual void OnDisconnecting()
