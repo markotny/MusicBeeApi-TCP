@@ -12,6 +12,7 @@ namespace MusicBeeAPI_TCP
     {
         Task<bool> AwaitClientAsync();
         void SetupServer();
+        void CloseSocket();
     }
 
     public class MusicBeeTcpServer : TcpMessaging, IMusicBeeTcpServer
@@ -37,6 +38,11 @@ namespace MusicBeeAPI_TCP
             ServerSocket.Start();
 
             Logger.Trace("End SetupServer");
+        }
+
+        public void CloseSocket()
+        {
+            ServerSocket.Stop();
         }
 
         public void Dispose()

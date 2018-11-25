@@ -5,11 +5,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{35C2B268-5390-48AA-8CC1-FCBAA91F37E1}</ProjectGuid>
+    <ProjectGuid>{14EA68AA-D462-4606-9F29-CFD08AE9C61D}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>TestMusicBeeTcpServer</RootNamespace>
-    <AssemblyName>TestMusicBeeTcpServer</AssemblyName>
+    <RootNamespace>TestMusicBeeAPI_TCP</RootNamespace>
+    <AssemblyName>TestMusicBeeAPI-TCP</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{3AC096D0-A1C2-E12C-1390-A8335801FDAB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -49,13 +49,13 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ConnectionTest.cs" />
+    <Compile Include="ClientConnectionTest.cs" />
+    <Compile Include="ServerConnectionTest.cs" />
+    <Compile Include="UnitTest1.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\TestMusicBeeTcpClient\App.config">
-      <Link>App.config</Link>
-    </None>
+    <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

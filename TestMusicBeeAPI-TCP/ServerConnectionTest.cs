@@ -8,14 +8,14 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Microsoft.VisualStudio.TestTools.UnitTesting.Logging;
 using MusicBeeAPI_TCP;
 
-namespace TestMusicBeeTcpServer
+namespace TestMusicBeeAPI_TCP
 {
     [TestClass]
-    public class ConnectionTest
+    public class ServerConnectionTest
     {
+        protected IMusicBeeTcpServer Server;
         protected TcpClient ClientSocket;
         protected NetworkStream NetworkStream;
         
@@ -102,15 +102,17 @@ namespace TestMusicBeeTcpServer
         {
             if (ClientSocket.Connected)
                 ClientSocket.Close();
+
+            Server.CloseSocket();
         }
 
         [TestMethod]
         public async Task TestAwaitClientAsync()
         {
-            IMusicBeeTcpServer server = new MusicBeeTcpServer();
+            Server = new MusicBeeTcpServer();
             var task = ConnectClient();
 
-            var connected = await server.AwaitClientAsync();
+            var connected = await Server.AwaitClientAsync();
             
             Assert.IsTrue(connected);
         }
@@ -118,44 +120,44 @@ namespace TestMusicBeeTcpServer
         [TestMethod]
         public async Task TestDisconnect()
         {
-            IMusicBeeTcpServer server = new MusicBeeTcpServer();
+            Server = new MusicBeeTcpServer();
             var task = ConnectClient();
 
-            var connected = await server.AwaitClientAsync();
+            var connected = await Server.AwaitClientAsync();
 
-            server.Disconnect();
+            Server.Disconnect();
             await Task.Delay(50);
 
-            Assert.IsFalse(server.IsConnected() && ClientSocket.Connected);
+            Assert.IsFalse(Server.IsConnected() && ClientSocket.Connected);
         }
         
         [TestMethod]
         public async Task TestDetectCloseConnection()
         {
-            IMusicBeeTcpServer server = new MusicBeeTcpServer();
+            Server = new MusicBeeTcpServer();
             var task = ConnectClient();
 
-            var connected = await server.AwaitClientAsync();
+            var connected = await Server.AwaitClientAsync();
 
             await ClientSendMessage("Disconnect");
 
             await Task.Delay(50);
             
-            Assert.IsFalse(server.IsConnected());
+            Assert.IsFalse(Server.IsConnected());
         }
         
         [TestMethod]
         public async Task TestAbruptDisconnect()
         {
-            IMusicBeeTcpServer server = new MusicBeeTcpServer();
+            Server = new MusicBeeTcpServer();
             var task = ConnectClient();
 
-            var connected = await server.AwaitClientAsync();
+            var connected = await Server.AwaitClientAsync();
 
             ClientSocket.Close();
             await Task.Delay(50);
 
-            Assert.IsFalse(server.IsConnected());
+            Assert.IsFalse(Server.IsConnected());
         }
     }
 }

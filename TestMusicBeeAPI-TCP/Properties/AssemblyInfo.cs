@@ -2,18 +2,18 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyTitle("TestMusicBeeTcpServer")]
+[assembly: AssemblyTitle("TestMusicBeeAPI-TCP")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("TestMusicBeeTcpServer")]
+[assembly: AssemblyProduct("TestMusicBeeAPI-TCP")]
 [assembly: AssemblyCopyright("Copyright ©  2018")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
 [assembly: ComVisible(false)]
 
-[assembly: Guid("35c2b268-5390-48aa-8cc1-fcbaa91f37e1")]
+[assembly: Guid("14ea68aa-d462-4606-9f29-cfd08ae9c61d")]
 
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("1.0.0.0")]
