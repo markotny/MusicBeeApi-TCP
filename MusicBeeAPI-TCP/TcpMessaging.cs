@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
+using System.Reflection;
+using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
 using MusicBeePlugin;
@@ -55,6 +57,32 @@ namespace MusicBeeAPI_TCP
         private static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
 
         private Dictionary<Command, TaskCompletionSource<TcpResponse>> _responseStack;
+
+        /// <summary>
+        /// Allows for deserialization when MusicBeeApi-TCP.dll is not in the same folder as App exe.
+        /// Code from: https://stackoverflow.com/a/23939713/10708546
+        /// </summary>
+        sealed class CustomizedBinder : SerializationBinder
+        {
+            public override Type BindToType(string assemblyName, string typeName)
+            {
+                Type returntype = null;
+                string sharedAssemblyName = "SharedAssembly, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null";
+                assemblyName = Assembly.GetExecutingAssembly().FullName;
+                typeName = typeName.Replace(sharedAssemblyName, assemblyName);
+                returntype =
+                    Type.GetType(String.Format("{0}, {1}",
+                        typeName, assemblyName));
+
+                return returntype;
+            }
+
+            public override void BindToName(Type serializedType, out string assemblyName, out string typeName)
+            {
+                base.BindToName(serializedType, out assemblyName, out typeName);
+                assemblyName = "SharedAssembly, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null";
+            }
+        }
 
         public async Task WriteToStreamAsync(object message)
         {
@@ -111,7 +139,7 @@ namespace MusicBeeAPI_TCP
 
                         using (var memStream = new MemoryStream(buffer))
                         {
-                            var formatter = new BinaryFormatter();
+                            var formatter = new BinaryFormatter {Binder = new CustomizedBinder()};
                             ProcessMessage(formatter.Deserialize(memStream));
                         }
                     }
@@ -196,14 +224,13 @@ namespace MusicBeeAPI_TCP
 
             var request = new TcpRequest(cmd, args);
             var task = WriteToStreamAsync(request);
-
+            Logger.Debug("Sent request: {0}", cmd);
             if (!request.ResponseRequired)
             {
                 Logger.Trace("End SendRequest {0} - response not required", cmd);
                 return default(T);
             }
 
-            await task;
             try
             {
                 _responseStack.Add(cmd, new TaskCompletionSource<TcpResponse>());

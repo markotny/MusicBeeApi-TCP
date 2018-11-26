@@ -20,26 +20,26 @@ namespace MusicBeeAPI_TCP
 
         public static bool CheckIfResponseRequired(TcpMessaging.Command cmd)
         {
-            try
-            {
-                var methodInfo = typeof(Plugin).GetNestedType(cmd.ToString()).GetMethod("Invoke");
-                if (methodInfo == null)
-                    throw new NullReferenceException("Method not found!");
+            var delegateType = typeof(Plugin.MusicBeeApiInterface).GetField(cmd.ToString()).FieldType; //methods are declared as public fields (delegates)
+            if (delegateType == null)
+                throw new NullReferenceException("Method not found");
 
-                return methodInfo.ReturnType != typeof(void);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                throw;
-            }
+            var methodInfo = delegateType.GetMethod("Invoke");
+            if (methodInfo == null)
+                throw new NullReferenceException("Method not found!");
+
+            return methodInfo.ReturnType != typeof(void) && methodInfo.ReturnType != typeof(bool);
         }
 
         public static bool CheckIfValidParameters(TcpMessaging.Command cmd, params object[] args)
         {
-            var methodInfo = typeof(Plugin).GetNestedType(cmd.ToString()).GetMethod("Invoke");
+            var delegateType = typeof(Plugin.MusicBeeApiInterface).GetField(cmd.ToString()).FieldType;
+            if (delegateType == null)
+                throw new NullReferenceException("Method not found");
+            
+            var methodInfo = delegateType.GetMethod("Invoke");
             if (methodInfo == null)
-                throw new NullReferenceException("Method not found!");
+                throw new NullReferenceException("Delegate not found");
 
             var parameterInfos = methodInfo.GetParameters();
             var i = 0;

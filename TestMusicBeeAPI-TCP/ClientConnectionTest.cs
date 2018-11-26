@@ -95,16 +95,6 @@ namespace TestMusicBeeAPI_TCP
             Assert.IsTrue(connected);
         }
 
-        //[TestMethod] (succeeded, disabled because lowest timeout is 1 minute)
-        public async Task TestEstablishConnectionAsyncTimeout()
-        {
-            IMusicBeeTcpClient client = new MusicBeeTcpClient();
-
-            var connected = await client.EstablishConnectionAsync();
-            
-            Assert.IsFalse(connected);
-        }
-
         [TestMethod]
         public async Task TestDisconnect()
         {

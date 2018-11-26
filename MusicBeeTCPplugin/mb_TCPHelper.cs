@@ -21,12 +21,13 @@ namespace MusicBeePlugin
         {
             Logger.Debug("Received notification: {0}", type);
             //if sending all notifications through TCP
-            //_mbTcpHelper.SendMessage(type);
+            if (_mbTcpHelper != null && _mbTcpHelper.IsConnected())
+                _mbTcpHelper.SendMessage(type);
           
             switch (type)
             {
                 case NotificationType.PluginStartup:
-                    PluginSturtup();
+                    PluginStartup();
                     break;
                 case NotificationType.TrackChanged:
                     SendTrackArgs();
@@ -34,7 +35,7 @@ namespace MusicBeePlugin
             }
         }
 
-        private void PluginSturtup()    //try to rename -> enum should still work
+        private void PluginStartup()    //try to rename -> enum should still work
         {
             //setup NLog
             // Step 1. Create configuration object 
@@ -43,14 +44,17 @@ namespace MusicBeePlugin
             // Step 2. Create targets
             var debugTarget = new DebugTarget("target1")
             {
-                Layout = @"${date:format=HH\:mm\:ss} ${level} ${message} ${exception}"
+                Layout = @"${longdate} ${level:uppercase=true}|${callsite:className=true:includeNamespace=false:includeSourcePath=false:methodName=true:cleanNamesOfAsyncContinuations=true}
+    ${message} ${exception:format=tostring}"
+
             };
             config.AddTarget(debugTarget);
 
             var fileTarget = new FileTarget("target2")
             {
                 FileName = "D:/logs/Plugin/${shortdate}.log",
-                Layout = "${longdate} ${uppercase:${level}} ${message}  ${exception}"
+                Layout = @"${longdate} ${level:uppercase=true}|${callsite:className=true:includeNamespace=false:includeSourcePath=false:methodName=true:cleanNamesOfAsyncContinuations=true}
+    ${message} ${exception:format=tostring}"
             };
             config.AddTarget(fileTarget);
 
@@ -66,6 +70,7 @@ namespace MusicBeePlugin
             LogManager.Configuration = config;
             
             _mbTcpHelper = new MusicBeeTcpServer();
+            _mbTcpHelper.AwaitClientAsync();
             _mbTcpHelper.RequestArrived += ProcessRequest;
 
             _commandDictionary = new Dictionary<int, Delegate>()

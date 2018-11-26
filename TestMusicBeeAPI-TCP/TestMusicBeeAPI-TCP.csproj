@@ -51,7 +51,7 @@
   <ItemGroup>
     <Compile Include="ClientConnectionTest.cs" />
     <Compile Include="ServerConnectionTest.cs" />
-    <Compile Include="UnitTest1.cs" />
+    <Compile Include="MethodInfoTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
