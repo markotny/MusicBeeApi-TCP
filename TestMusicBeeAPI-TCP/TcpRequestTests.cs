@@ -6,7 +6,7 @@ using MusicBeePlugin;
 namespace TestMusicBeeAPI_TCP
 {
     [TestClass]
-    public class MethodInfoTests
+    public class TcpRequestTests
     {
         [TestMethod]
         public void CheckIfValidParametersTest()

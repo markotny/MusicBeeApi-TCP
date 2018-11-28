@@ -28,7 +28,7 @@ namespace MB_TCP_ExampleConsoleApp
                     _exampleApp.ConnectToServer();
                     _cts = new CancellationTokenSource();
                     var token = _cts.Token;
-                    var task = _exampleApp.FunctionSelect(token);
+                    Task.Run(async () => await _exampleApp.FunctionSelect(token), token).GetAwaiter().GetResult();
                     Console.WriteLine("Reconnect? (y)");
                     input = Console.ReadLine();
                 }
@@ -48,7 +48,11 @@ namespace MB_TCP_ExampleConsoleApp
             _musicBeeTcpClient.PlayerInitialized += _musicBeeTcpClient_StateChanged;
             _musicBeeTcpClient.TrackChanged += _musicBeeTcpClient_TrackChanged;
             _musicBeeTcpClient.PlayerNotification += _musicBeeTcpClient_PlayerNotification;
-            _musicBeeTcpClient.Disconnected += (s, a) => Console.WriteLine("Connection lost.");
+            _musicBeeTcpClient.Disconnected += (s, a) =>
+            {
+                Console.WriteLine("Connection lost.");
+                _cts.Cancel();
+            };
             
             Logger.Debug("Client initialised");
         }
@@ -68,16 +72,28 @@ namespace MB_TCP_ExampleConsoleApp
                 Console.WriteLine("Enter function number. Type negative number to exit. Function examples:\n" +
                                   "Player_PlayPause = 18\n" +
                                   "Player_PlayNextTrack = 22\n" +
-                                  "Player_PlayPreviousTrack = 21");
+                                  "Player_PlayPreviousTrack = 21\n " +
+                                  "Player_GetPosition = 15");
                 try
                 {
                     var input = Console.ReadLine();
                     token.ThrowIfCancellationRequested();
                     inputInt = int.Parse(input);
-                    var selectedFunc = (TcpMessaging.Command) inputInt;
-                    Logger.Info("Selected function {0}", selectedFunc);
-                    await _musicBeeTcpClient.SendRequest<object>(selectedFunc).ConfigureAwait(false);
-                    Logger.Debug("Request sent");
+                    if (inputInt == 26)
+                    {
+                        var selectedFunc = (TcpMessaging.Command)inputInt;
+                        var vol = 0.7F;
+                        var ret = await _musicBeeTcpClient.SendRequest<object>(selectedFunc,vol).ConfigureAwait(false);
+                        Console.WriteLine("Result: {0}", ret);
+                    }
+                    else
+                    {
+
+                        var selectedFunc = (TcpMessaging.Command)inputInt;
+                        Logger.Info("Selected function {0}", selectedFunc);
+                        var ret = await _musicBeeTcpClient.SendRequest<object>(selectedFunc).ConfigureAwait(false);
+                        Console.WriteLine("Result: {0}", ret);
+                    }
                 }
                 catch (OperationCanceledException e)
                 {

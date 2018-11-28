@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.Linq;
 using MusicBeePlugin;
 
 namespace MusicBeeAPI_TCP
@@ -7,12 +8,14 @@ namespace MusicBeeAPI_TCP
     [Serializable()]
     public class TcpRequest
     {
+        public int Id { get; set; }
         public TcpMessaging.Command PlayerRequest { get; set; }
         public object[] Arguments { get; set; }
         public bool ResponseRequired { get; set; }
         
-        public TcpRequest(TcpMessaging.Command cmd, params object[] args)
+        public TcpRequest(int id, TcpMessaging.Command cmd, params object[] args)
         {
+            Id = id;
             PlayerRequest = cmd;
             Arguments = args;
             ResponseRequired = CheckIfResponseRequired(cmd);
@@ -20,7 +23,10 @@ namespace MusicBeeAPI_TCP
 
         public static bool CheckIfResponseRequired(TcpMessaging.Command cmd)
         {
-            var delegateType = typeof(Plugin.MusicBeeApiInterface).GetField(cmd.ToString()).FieldType; //methods are declared as public fields (delegates)
+            var delegateType = typeof(Plugin.MusicBeeApiInterface)
+                .GetField(cmd.ToString())
+                .FieldType; //methods are declared as public fields (delegates)
+
             if (delegateType == null)
                 throw new NullReferenceException("Method not found");
 
@@ -28,12 +34,15 @@ namespace MusicBeeAPI_TCP
             if (methodInfo == null)
                 throw new NullReferenceException("Method not found!");
 
-            return methodInfo.ReturnType != typeof(void) && methodInfo.ReturnType != typeof(bool);
+            return methodInfo.ReturnType != typeof(void);// && methodInfo.ReturnType != typeof(bool);
         }
 
         public static bool CheckIfValidParameters(TcpMessaging.Command cmd, params object[] args)
         {
-            var delegateType = typeof(Plugin.MusicBeeApiInterface).GetField(cmd.ToString()).FieldType;
+            var delegateType = typeof(Plugin.MusicBeeApiInterface)
+                .GetField(cmd.ToString())
+                .FieldType;
+
             if (delegateType == null)
                 throw new NullReferenceException("Method not found");
             
@@ -42,26 +51,20 @@ namespace MusicBeeAPI_TCP
                 throw new NullReferenceException("Delegate not found");
 
             var parameterInfos = methodInfo.GetParameters();
-            var i = 0;
-            foreach (var parameter in parameterInfos)
-            {
-                if (parameter.ParameterType != args[i].GetType())
-                    return false;
-                i++;
-            }
-            return true;
+
+            return !parameterInfos.Where((t, i) => t.ParameterType != args[i].GetType()).Any();
         }
     }
 
     [Serializable()]
     public class TcpResponse
     {
-        public TcpMessaging.Command PlayerRequest { get; set; }
+        public int Id { get; set; } 
         public object Response { get; set; }
 
-        public TcpResponse(TcpMessaging.Command cmd, object res)
+        public TcpResponse(int id, object res)
         {
-            PlayerRequest = cmd;
+            Id = id;
             Response = res;
         }
     }

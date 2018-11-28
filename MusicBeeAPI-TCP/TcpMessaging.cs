@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
@@ -31,7 +34,7 @@ namespace MusicBeeAPI_TCP
         /// <returns></returns>
         Task<T> SendRequest<T>(TcpMessaging.Command cmd, params object[] args);
 
-        void SendResponse(TcpMessaging.Command cmd, object res);
+        void SendResponse(int id, object res);
 
         /// <summary>
         /// Use to close connection
@@ -42,7 +45,6 @@ namespace MusicBeeAPI_TCP
 
         event EventHandler Disconnected;
         event EventHandler<TcpRequest> RequestArrived;
-        event EventHandler<TcpMessaging.Command> ResponseArrived;
         event EventHandler<Plugin.NotificationType> PlayerNotification;
         event EventHandler<PlayerStatusArgs> PlayerInitialized;
         event EventHandler<TrackArgs> TrackChanged;
@@ -54,9 +56,14 @@ namespace MusicBeeAPI_TCP
         protected TcpClient ClientSocket;
         protected NetworkStream NetworkStream;
 
+        /// <summary>
+        /// ID to be used when sending request, must be globally unique
+        /// </summary>
+        private int _requestId;
+
         private static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
 
-        private Dictionary<Command, TaskCompletionSource<TcpResponse>> _responseStack;
+        private Dictionary<int, TaskCompletionSource<TcpResponse>> _responseStack;
 
         /// <summary>
         /// Allows for deserialization when MusicBeeApi-TCP.dll is not in the same folder as App exe.
@@ -66,15 +73,14 @@ namespace MusicBeeAPI_TCP
         {
             public override Type BindToType(string assemblyName, string typeName)
             {
-                Type returntype = null;
-                string sharedAssemblyName = "SharedAssembly, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null";
+                Type returnType = null;
+                const string sharedAssemblyName = "SharedAssembly, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null";
                 assemblyName = Assembly.GetExecutingAssembly().FullName;
                 typeName = typeName.Replace(sharedAssemblyName, assemblyName);
-                returntype =
-                    Type.GetType(String.Format("{0}, {1}",
-                        typeName, assemblyName));
+                returnType =
+                    Type.GetType($"{typeName}, {assemblyName}");
 
-                return returntype;
+                return returnType;
             }
 
             public override void BindToName(Type serializedType, out string assemblyName, out string typeName)
@@ -116,7 +122,7 @@ namespace MusicBeeAPI_TCP
         public async Task ReadFromStreamAsync()
         {
             Logger.Trace("Begin ReadFromStreamAsync");
-            _responseStack = new Dictionary<Command, TaskCompletionSource<TcpResponse>>();
+            _responseStack = new Dictionary<int, TaskCompletionSource<TcpResponse>>();
             var sizeBuffer = new byte[sizeof(int)];
             while (ClientSocket.Connected)
             {
@@ -169,16 +175,15 @@ namespace MusicBeeAPI_TCP
             switch (msg)
             {
                 case TcpRequest _:
-                    Logger.Info("Received request in network stream");
+                    Logger.Info("Received request: {0}", ((TcpRequest)msg).PlayerRequest);
                     OnRequestArrived((TcpRequest)msg);
                     break;
                 case TcpResponse _:
-                    Logger.Info("Received response in network stream");
-                    var response = (TcpResponse) msg;
                     try
                     {
-                        _responseStack[response.PlayerRequest].SetResult(response);
-                        OnResponseArrived(response.PlayerRequest);
+                        var response = (TcpResponse)msg;
+                        Logger.Info("Received response to request id: {0}", response.Id);
+                        _responseStack[response.Id].SetResult(response);
                     }
                     catch (Exception e)
                     {
@@ -186,24 +191,23 @@ namespace MusicBeeAPI_TCP
                     }
                     break;
                 case Plugin.NotificationType _:
-                    Logger.Info("Received notification in network stream");
+                    Logger.Info("Received notification: {0}", (Plugin.NotificationType)msg);
                     OnPlayerNotification((Plugin.NotificationType)msg);
                     break;
                 case PlayerStatusArgs _:
-                    Logger.Info("Received player status info in network stream");
+                    Logger.Info("Received player status info");
                     OnPlayerInitialized((PlayerStatusArgs)msg);
                     break;
                 case TrackArgs _:
-                    Logger.Info("Received new track info in network stream");
+                    Logger.Info("Received new track info");
                     OnTrackChanged((TrackArgs)msg);
                     break;
                 case "Disconnect":
-                    Logger.Info("Received disconnect order in network stream");
+                    Logger.Info("Received disconnect order");
                     OnDisconnecting();
                     break;
                 default:
-                    Logger.Warn("The following object has been read from stream but not handled:\nType: {0}, data: {1}",
-                        msg.GetType(), msg);
+                    Logger.Warn("An object has been read from stream but not handled");
                     break;
             }
             Logger.Trace("End ProcessMessage");
@@ -219,12 +223,16 @@ namespace MusicBeeAPI_TCP
         public async Task<T> SendRequest<T>(Command cmd, params object[] args)
         {
             Logger.Trace("Begin SendRequest: {0}", cmd);
+
             if (!TcpRequest.CheckIfValidParameters(cmd, args))
                 throw new Exception("Invalid function parameters!");
-
-            var request = new TcpRequest(cmd, args);
+                
+            var id = ++_requestId;
+            
+            var request = new TcpRequest(id, cmd, args);
             var task = WriteToStreamAsync(request);
-            Logger.Debug("Sent request: {0}", cmd);
+            Logger.Debug("Sent request: {0}, id: {1}", cmd, id);
+
             if (!request.ResponseRequired)
             {
                 Logger.Trace("End SendRequest {0} - response not required", cmd);
@@ -233,17 +241,17 @@ namespace MusicBeeAPI_TCP
 
             try
             {
-                _responseStack.Add(cmd, new TaskCompletionSource<TcpResponse>());
-                Logger.Debug("Request {0} - awaiting response", cmd);
+                _responseStack.Add(id, new TaskCompletionSource<TcpResponse>());
+                Logger.Debug("Request id: {0} - awaiting response", id);
 
-                await _responseStack[cmd].Task;
-                _responseStack.TryGetValue(cmd, out var responseTask);
-                Logger.Debug("Request {0} - received response", cmd);
+                await _responseStack[id].Task;
+                _responseStack.TryGetValue(_requestId, out var responseTask);
+                Logger.Debug("Request id; {0} - received response", id);
 
                 if (responseTask == null)
                     throw new NullReferenceException("Response not found in responseStack!");
 
-                _responseStack.Remove(cmd);
+                _responseStack.Remove(id);
                 Logger.Trace("End SendRequest {0} - response arrived", cmd);
                 return (T)responseTask.Task.Result.Response;
             }
@@ -254,10 +262,9 @@ namespace MusicBeeAPI_TCP
             }
         }
 
-        public void SendResponse(Command cmd, object res)
+        public void SendResponse(int id, object res)
         {
-            Logger.Trace("Begin async SendResponse to request: {0}", cmd);
-            var response = new TcpResponse(cmd, res);
+            var response = new TcpResponse(id, res);
             var task = WriteToStreamAsync(response);
         }
 
@@ -285,10 +292,6 @@ namespace MusicBeeAPI_TCP
         public event EventHandler<TcpRequest> RequestArrived;
         protected virtual void OnRequestArrived(TcpRequest req) =>
             RequestArrived?.Invoke(this, req);
-
-        public event EventHandler<Command> ResponseArrived;
-        protected virtual void OnResponseArrived(Command args) =>
-            ResponseArrived?.Invoke(this, args);
 
         public event EventHandler<Plugin.NotificationType> PlayerNotification;
         protected virtual void OnPlayerNotification(Plugin.NotificationType notification) =>
